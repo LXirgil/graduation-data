@@ -1,52 +1,64 @@
-# Analysis notes
+# 実験結果の分析メモ
 
-These are descriptive results from the fixed test set. No statistical significance test or minimum acceptable performance threshold was set.
+## 研究で確かめたこと
 
-## Mean Recall and F1 across class-ratio settings
+学習データに含める「申し込みあり」の割合と、学習データの件数を変えたとき、申し込みありの人を見つける性能がどう変わるかを調べた。ロジスティック回帰とランダムフォレストを使い、同じテストデータで比較した。
 
-### Logistic Regression
+本実験は、4種類の学習データ量（500、1,000、2,000、5,000件）、5種類の申し込みあり比率（1%、5%、10%、30%、50%）、5つの抽出用乱数シード、2つのモデルを組み合わせた計200回である。条件ごとに5回分の平均と標準偏差を計算した。集計表は [`../results/summary.csv`](../results/summary.csv)、各回の記録は [`../results/results_2026-10-26.csv`](../results/results_2026-10-26.csv) に保存してある。
 
-- n=500: Recall 0.244, F1 0.205 (averaged equally across the five ratios).
-- n=1,000: Recall 0.253, F1 0.228 (averaged equally across the five ratios).
-- n=2,000: Recall 0.254, F1 0.237 (averaged equally across the five ratios).
-- n=5,000: Recall 0.256, F1 0.244 (averaged equally across the five ratios).
+## 主な結果
 
-### Random Forest
+### 1. 申し込みありの割合が低いと、見つける割合が大きく下がった
 
-- n=500: Recall 0.240, F1 0.198 (averaged equally across the five ratios).
-- n=1,000: Recall 0.250, F1 0.208 (averaged equally across the five ratios).
-- n=2,000: Recall 0.264, F1 0.227 (averaged equally across the five ratios).
-- n=5,000: Recall 0.277, F1 0.243 (averaged equally across the five ratios).
+次の表は、学習データ量と抽出用の乱数シードを平均した値である。「見つけた割合（Recall）」が高いほど、実際に申し込んだ人を多く見つけられている。
 
-## Mean Accuracy and Recall across training sizes
+| 学習データ中の申し込みあり比率 | ロジスティック回帰 Recall | ランダムフォレスト Recall | ロジスティック回帰 F1 | ランダムフォレスト F1 |
+|---:|---:|---:|---:|---:|
+| 1% | 0.3% | 0.0% | 0.6% | 0.0% |
+| 5% | 6.8% | 3.6% | 12.3% | 6.6% |
+| 10% | 15.5% | 14.1% | 24.8% | 22.6% |
+| 30% | 39.0% | 44.2% | 41.2% | 43.3% |
+| 50% | 64.1% | 66.9% | 35.4% | 37.0% |
 
-### Logistic Regression
+このテストデータでは、「申し込みあり」の割合が約11.7%だった。学習データでその割合を10%にした条件は、現実の割合に近く、見つけた割合は約14〜16%だった。学習データの比率を30%や50%に上げると Recall は大きく上がった。
 
-- yes=50%: Accuracy 0.725, Recall 0.641, F1 0.354, PR-AUC 0.387 (averaged equally across the four training sizes).
-- yes=30%: Accuracy 0.869, Recall 0.390, F1 0.412, PR-AUC 0.387 (averaged equally across the four training sizes).
-- yes=10%: Accuracy 0.891, Recall 0.155, F1 0.248, PR-AUC 0.372 (averaged equally across the four training sizes).
-- yes=5%: Accuracy 0.888, Recall 0.068, F1 0.123, PR-AUC 0.346 (averaged equally across the four training sizes).
-- yes=1%: Accuracy 0.883, Recall 0.003, F1 0.006, PR-AUC 0.271 (averaged equally across the four training sizes).
+ただし、50%条件では Recall が最も高い一方、F1は30%条件より低かった。見逃しを減らすことを重視する場合と、見逃し・誤検出の両方をほどよく抑える場合では、よいといえる条件が異なる。
 
-### Random Forest
+### 2. 正解率だけでは、見逃しの多さが分からない
 
-- yes=50%: Accuracy 0.732, Recall 0.669, F1 0.370, PR-AUC 0.390 (averaged equally across the four training sizes).
-- yes=30%: Accuracy 0.865, Recall 0.442, F1 0.433, PR-AUC 0.399 (averaged equally across the four training sizes).
-- yes=10%: Accuracy 0.890, Recall 0.141, F1 0.226, PR-AUC 0.376 (averaged equally across the four training sizes).
-- yes=5%: Accuracy 0.885, Recall 0.036, F1 0.066, PR-AUC 0.342 (averaged equally across the four training sizes).
-- yes=1%: Accuracy 0.883, Recall 0.000, F1 0.000, PR-AUC 0.251 (averaged equally across the four training sizes).
+学習データ中の申し込みあり比率が1%の条件では、平均正解率は両モデルとも約88%だった。一方で、申し込みありを見つけた割合はロジスティック回帰で約0.3%、ランダムフォレストで0%だった。全体の正解率だけを見ると高性能に見えても、申し込みありをほとんど見つけられない場合がある。
 
-## Relative descriptive effects on Recall
+### 3. 今回の設定では、データの件数より「申し込みあり」の比率との関係が大きかった
 
-The comparisons below use equal-weight averages over the other conditions; they are descriptive, not statistical significance tests.
+申し込みあり比率を1%から50%にしたときの Recall の平均変化は、ロジスティック回帰で約+63.8ポイント、ランダムフォレストで約+66.9ポイントだった。比率を固定して学習データ量を500件から5,000件に増やしたときの平均変化は、それぞれ約+1.2ポイント、約+3.7ポイントだった。
 
-- Logistic Regression: increasing training size from 500 to 5,000 changed mean Recall by +0.012; increasing yes ratio from 1% to 50% changed mean Recall by +0.638.
-- Random Forest: increasing training size from 500 to 5,000 changed mean Recall by +0.037; increasing yes ratio from 1% to 50% changed mean Recall by +0.669.
+したがって、今回試した範囲と方法では、学習データの件数を増やすことよりも、学習データ中の申し込みありの割合を上げることのほうが、Recall の改善と強く結びついていた。ただし、どの条件でも同じとは限らず、5,000件に増やす効果が不要という意味ではない。
 
-## Recall-zero runs
+### 4. 2つのモデルは似た傾向だが、優劣は評価指標によって異なる
 
-Recall was zero in 19 of 200 individual model runs. The only model/size/ratio group with zero Recall across all five seeds was Random Forest, n=500, yes=1%. This is recorded as an observed result; the run itself had no skipped conditions.
+- Recall は、多くの比率条件でランダムフォレストがロジスティック回帰を上回った。特に30%条件では約44%対39%、50%条件では約67%対64%だった。
+- F1は30%条件でランダムフォレストが約43%、ロジスティック回帰が約41%だった。50%条件では両モデルとも30%条件より低かった。
+- 1〜10%条件では、どちらのモデルも Recall が低く、モデルを選ぶだけでは見逃しを十分に減らせなかった。
 
-## Interpretation note
+## 今回の結果から言える条件の使い分け
 
-Accuracy should be read together with yes Recall, F1, and PR-AUC. A high Accuracy alone does not show whether the model found the minority class. The project has not defined a minimum performance threshold, so choosing a minimum data size or ratio requires a decision with the supervisor.
+「適切な比率」は、何を重視するかで変わる。今回のテスト結果の範囲では、次のように説明できる。
+
+- **申し込みありをできるだけ多く見つけたい**：50%条件が候補。Recall は約64〜67%だが、F1は30%条件より低い。
+- **見逃しと誤検出のバランスを見たい**：30%条件が候補。両モデルともF1がこの比較の中で最も高かった。
+- **実際のデータ比率に近い条件を見たい**：10%条件が候補。ただし Recall は約14〜16%にとどまり、多くを見逃す。
+
+これは今回の公開データ、テストデータ、モデル、判定しきい値0.5に限った比較上の目安である。業務で使うための最低性能や、誤検出と見逃しのどちらを重くするかは、この実験だけでは決められない。そのため、30%や50%を一般に最適な比率とは結論づけない。
+
+## 結果のばらつきと限界
+
+- 条件ごとの平均と標準偏差は5つの抽出用乱数シードから計算した。詳細は `summary.csv` を参照。
+- テストデータは1回の分割で固定しているため、別のテスト分割でも同じ数値になるかは調べていない。
+- 比率を上げる操作は、公開データから条件に合う記録を選んで学習用データを作るもの。新しい人の記録を増やしたわけではない。
+- モデルは2種類、判定しきい値は0.5に固定し、クラス重み付けなどの追加対策は行っていない。
+- 統計的有意差の検定や、業務利用に必要な最低性能の設定はしていない。示しているのは今回の条件における記述的な比較であり、因果関係や実運用での効果を証明するものではない。
+- 通話時間 `duration` は、電話の案内が終わるまで分からない情報のため、予測に使っていない。
+
+## 次に行う作業
+
+このメモと集計表・図を基に中間発表資料を整え、その後、研究の背景、方法、結果、限界を論文の章立てに沿って文章化する。追加実験を行う場合は、クラス重み付けや別の判定しきい値を扱う案があるが、現在の200回の結果とは区別して報告する。
